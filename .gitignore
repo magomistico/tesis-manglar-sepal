@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Datos pesados y rasters locales (guardar en disco persistente de SEPAL o /tmp, no en Git)
+*.tif
+*.tiff
+*.vrt
+*.img
+*.zip
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.sbn
+*.sbx
+*.joblib
+*.pkl
+
+# Salidas generadas por corrida (versionar solo codigo y configuracion)
+outputs/mapas/*
+outputs/modelos/*
+outputs/muestras/*
+outputs/figuras/*
+outputs/tablas/*
+!outputs/.gitkeep
+
+# Credenciales y secretos (NUNCA subir a GitHub)
+.env
+*.json.secret
+credentials.json
+token.json

@@ -1,0 +1,146 @@
+# =============================================================================
+# CONFIGURACION MAESTRA DE LA TESIS (SEPAL.io + Google Earth Engine)
+# Evaluacion de un modelo geoespacial de imagenes Sentinel-1 y Sentinel-2
+# para la estimacion de cobertura manglar en Guatemala (USAC - Maestria en Geomatica)
+# =============================================================================
+
+proyecto:
+  titulo: "Evaluación de un modelo geoespacial de imágenes Sentinel-1 y Sentinel-2 para la estimación de cobertura manglar"
+  autor: "Marlon Ronaldo Vásquez Reyes"
+  version_pipeline: "V1_SEPAL"
+  seed: 20250822
+
+gee:
+  # Proyecto de Google Cloud habilitado para Earth Engine (donde se guardaran los assets)
+  project: "tesismangle"
+  asset_root: "projects/tesismangle/assets/"
+  drive_folder: "TESIS_MANGLE_SEPAL_V1"
+  max_pixels: 10000000000000  # 1e13
+
+assets:
+  # Capa guia oficial de manglar actual para apoyo al muestreo de control
+  mangle_guia: "projects/tesismangle/assets/DinMangle_2020_2022_V23"
+  # Assets de poligonos AOI (verificar acceso en Notebook 00)
+  aoi:
+    PACIFICO: "projects/tesismangle/assets/AOI_PACIFICO"
+    CARIBE: "projects/tesismangle/assets/AOI_CARIBE"
+
+regiones:
+  PACIFICO:
+    nombre_largo: "Costa del Pacífico"
+    crs: "EPSG:32615"
+    # Malla UTM 15N fija a 10 m exactos (alineada a multiplos de 10 m)
+    crs_transform: [10, 0, 300000, 0, -10, 1800000]
+    orbit_pass: "ASCENDING"
+    temporadas:
+      SECA:
+        inicio: "2025-01-01"
+        fin: "2025-04-01"  # fecha exclusiva en GEE filterDate
+      LLUVIA:
+        inicio: "2025-08-01"
+        fin: "2025-11-01"  # fecha exclusiva en GEE filterDate
+    linea_base_marn_2013_ha: 17670.56
+
+  CARIBE:
+    nombre_largo: "Costa del Caribe"
+    crs: "EPSG:32616"
+    # Malla UTM 16N fija a 10 m exactos (Izabal: X ~ 280k-380k, Y ~ 1710k-1780k)
+    crs_transform: [10, 0, 200000, 0, -10, 1800000]
+    orbit_pass: "ASCENDING"  # confirmar cobertura ASCENDING vs DESCENDING en NB 01
+    temporadas:
+      SECA:
+        inicio: "2025-01-01"
+        fin: "2025-04-01"
+      LLUVIA:
+        inicio: "2025-08-01"
+        fin: "2025-11-01"
+    linea_base_marn_2013_ha: 1169.52
+
+stack:
+  escala_m: 10
+  # Doble anillo geometrico: buffer de 100 m para el stack final + 60 m de margen de kernel
+  buffer_stack_m: 100
+  margen_kernel_m: 60
+
+s2:
+  # 10 bandas terrestres de Sentinel-2 L2A (10 m y 20 m armonizadas a 10 m)
+  bandas: ["B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]
+  # Metodo de enmascaramiento de nubes:
+  #   - "cloud_score_plus" (recomendado: GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED)
+  #   - "s2cloudless"      (alternativa clasica con proyeccion geometrica de sombra)
+  metodo_nubes: "cloud_score_plus"
+  cs_band: "cs_cdf"
+  cs_threshold: 0.60
+  nubosidad_escena_max: 35
+  # Parametros adicionales si se usa "s2cloudless" y proteccion de agua/manglar inundado
+  probabilidad_nube: 30
+  reflectancia_nir_oscura: 0.15
+  umbral_mndwi_agua: 0.10
+  distancia_sombra_km: 1
+  erosion_m: 20
+  buffer_m: 40
+
+s1:
+  aplicar_border_noise: true
+  # Filtro de moteado (speckle) en escala lineal:
+  #   - "REFINED_LEE" (7x7 direccional preservador de bordes; Mullissa et al., 2021)
+  #   - "BOXCAR"      (media movil configurable)
+  #   - "NONE"        (solo mediana estacional)
+  speckle_filter: "REFINED_LEE"
+  kernel_size: 7
+  aplicar_terrain_flattening: true
+  terrain_model: "VOLUME"  # "VOLUME" (recomendado para bosques/manglar) o "DIRECT"
+  dem_asset: "USGS/SRTMGL1_003"  # se aplica .unmask(0) para proteger linea costera
+  layover_shadow_buffer_m: 0
+  piso_lineal_min: 1.0e-6  # -60 dB min; evita -Infinity / NaN
+
+# Tabla 5 del Protocolo FINAL (p. 43)
+clases:
+  1:
+    nombre: "Mangle"
+    nombre_corto: "Mangle"
+    color: "#006837"
+  2:
+    nombre: "Bosque latifoliado"
+    nombre_corto: "Latifoliado"
+    color: "#78c679"
+  3:
+    nombre: "Agua"
+    nombre_corto: "Agua"
+    color: "#2b83ba"
+  4:
+    nombre: "Infraestructura urbana"
+    nombre_corto: "Urbano"
+    color: "#d7191c"
+  5:
+    nombre: "Pastos/Ganadería"
+    nombre_corto: "Pastos"
+    color: "#fdae61"
+
+muestreo:
+  # Erosion interna (m) al proponer puntos guia dentro de DinMangle para evitar bordes mixtos
+  erosion_mangle_guia_m: 20
+  # Particion preliminar (diagnostico interno antes de AREA2/CEO)
+  test_size_preliminar: 0.30
+
+pca:
+  criterio_kaiser: 1.0
+  # Numero minimo de bandas opticas y SAR a retener en la seleccion guiada por PCA
+  umbral_varianza_acumulada: 0.85
+
+clasificacion:
+  rf:
+    n_estimators: 300
+    min_samples_leaf: 2
+    max_features: "sqrt"
+    cv_folds: 5
+    # Grilla de busqueda para ajuste de hiperparametros sobre el 70% de entrenamiento
+    param_grid:
+      n_estimators: [150, 300, 500]
+      min_samples_leaf: [1, 2, 4]
+      max_features: ["sqrt", 0.5]
+
+validacion_olofsson:
+  nivel_confianza: 0.95
+  bootstrap_iteraciones: 2000
+  alpha_hipotesis: 0.05
