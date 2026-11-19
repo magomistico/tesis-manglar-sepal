@@ -39,6 +39,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # ---------------------------------------------------------------------------
 def test_config_loads_and_matches_protocol():
     cfg = load_config(REPO_ROOT / "config.yaml")
+    assert cfg["computo"]["modo"] == "sepal_local"
+    assert cfg["computo"]["block_size"] == 1024
+    assert cfg["local_assets"]["aoi_dir"] == "outputs/aoi"
+    assert cfg["local_assets"]["guia_dir"] == "outputs/guia"
+    assert cfg["local_assets"]["stack_dir"] == "outputs/stack"
+    assert cfg["s2"]["stac_collection"] == "sentinel-2-c1-l2a"
+    assert cfg["s1"]["fuente_local"] == "OPERA_RTC_S1"
+    assert cfg["s1"]["speckle_filter"] == "REFINED_LEE"
+    assert cfg["s1"]["kernel_size"] == 7
+    assert cfg["validacion_olofsson"]["n_min_por_estrato"] == 50
+
     assert cfg["gee"]["project"] == "tesismangle"
     assert cfg["gee"]["asset_root"] == "projects/tesismangle/assets/"
     assert cfg["assets"]["mangle_guia"] == "projects/tesismangle/assets/DinMangle_2020_2022_V23"
@@ -289,7 +300,7 @@ def test_plotting_smoke(tmp_path: Path):
 # ---------------------------------------------------------------------------
 def test_all_python_modules_and_notebooks_valid_syntax():
     py_files = sorted((REPO_ROOT / "src").glob("*.py"))
-    assert len(py_files) == 7
+    assert len(py_files) == 12
     for pyf in py_files:
         py_compile.compile(str(pyf), doraise=True)
 

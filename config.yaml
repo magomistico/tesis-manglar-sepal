@@ -1,5 +1,5 @@
 # =============================================================================
-# CONFIGURACION MAESTRA DE LA TESIS (SEPAL.io + Google Earth Engine)
+# CONFIGURACION MAESTRA DE LA TESIS (100% COMPUTO EN SEPAL.io)
 # Evaluacion de un modelo geoespacial de imagenes Sentinel-1 y Sentinel-2
 # para la estimacion de cobertura manglar en Guatemala (USAC - Maestria en Geomatica)
 # =============================================================================
@@ -10,8 +10,20 @@ proyecto:
   version_pipeline: "V1_SEPAL"
   seed: 20250822
 
+computo:
+  # "sepal_local" (predeterminado: procesa S2/S1/Stack/RF/mapas en la VM de SEPAL)
+  # "gee"         (respaldo opcional en servidores de Google Earth Engine)
+  modo: "sepal_local"
+  # null = auto-detectar todos los nucleos CPU de la VM (ej. 8 en m8d, 16 en m16d)
+  max_workers: null
+  # Carpeta temporal en SSD local de SEPAL (rapido y amplio en instancias d, ej. m8d)
+  cache_dir: "/tmp/tesis_manglar_cache"
+  # Tamano de bloque espacial para no saturar RAM
+  block_size: 1024
+
 gee:
-  # Proyecto de Google Cloud habilitado para Earth Engine (donde se guardaran los assets)
+  # Usado unicamente en Notebook 00 para descargar una vez los AOIs/capa guia
+  # o si el usuario activa el modo secundario 'gee'
   project: "tesismangle"
   asset_root: "projects/tesismangle/assets/"
   drive_folder: "TESIS_MANGLE_SEPAL_V1"
@@ -20,31 +32,35 @@ gee:
 assets:
   # Capa guia oficial de manglar actual para apoyo al muestreo de control
   mangle_guia: "projects/tesismangle/assets/DinMangle_2020_2022_V23"
-  # Assets de poligonos AOI (verificar acceso en Notebook 00)
   aoi:
     PACIFICO: "projects/tesismangle/assets/AOI_PACIFICO"
     CARIBE: "projects/tesismangle/assets/AOI_CARIBE"
+
+local_assets:
+  # Rutas persistentes locales dentro del repositorio en SEPAL (sin depender de Drive/GEE)
+  aoi_dir: "outputs/aoi"
+  guia_dir: "outputs/guia"
+  stack_dir: "outputs/stack"
 
 regiones:
   PACIFICO:
     nombre_largo: "Costa del Pacífico"
     crs: "EPSG:32615"
-    # Malla UTM 15N fija a 10 m exactos (alineada a multiplos de 10 m)
+    # Malla UTM 15N base de referencia (en modo local se ajusta al bbox exacto del AOI en multiplos de 10 m)
     crs_transform: [10, 0, 300000, 0, -10, 1800000]
     orbit_pass: "ASCENDING"
     temporadas:
       SECA:
         inicio: "2025-01-01"
-        fin: "2025-04-01"  # fecha exclusiva en GEE filterDate
+        fin: "2025-04-01"
       LLUVIA:
         inicio: "2025-08-01"
-        fin: "2025-11-01"  # fecha exclusiva en GEE filterDate
+        fin: "2025-11-01"
     linea_base_marn_2013_ha: 17670.56
 
   CARIBE:
     nombre_largo: "Costa del Caribe"
     crs: "EPSG:32616"
-    # Malla UTM 16N fija a 10 m exactos (Izabal: X ~ 280k-380k, Y ~ 1710k-1780k)
     crs_transform: [10, 0, 200000, 0, -10, 1800000]
     orbit_pass: "ASCENDING"  # confirmar cobertura ASCENDING vs DESCENDING en NB 01
     temporadas:
@@ -63,34 +79,37 @@ stack:
   margen_kernel_m: 60
 
 s2:
-  # 10 bandas terrestres de Sentinel-2 L2A (10 m y 20 m armonizadas a 10 m)
+  # 10 bandas terrestres de Sentinel-2 L2A armonizadas a 10 m
   bandas: ["B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]
-  # Metodo de enmascaramiento de nubes:
-  #   - "cloud_score_plus" (recomendado: GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED)
-  #   - "s2cloudless"      (alternativa clasica con proyeccion geometrica de sombra)
+  # Configuracion modo local SEPAL (AWS Earth Search STAC, publico y sin credenciales)
+  stac_url: "https://earth-search.aws.element84.com/v1"
+  stac_collection: "sentinel-2-c1-l2a"
+  # Minima cobertura valida del AOI para aceptar una escena y filtrar nubosidad general
+  nubosidad_escena_max: 45
+  probabilidad_nube: 30
+  scl_invalidos: [0, 1, 3, 8, 9, 10]
+  umbral_mndwi_agua: 0.10
+  buffer_nubes_px: 2  # 20 m de dilatacion en nubes/sombras fuera del agua protegida
+  # Parametros del modo respaldo GEE
   metodo_nubes: "cloud_score_plus"
   cs_band: "cs_cdf"
   cs_threshold: 0.60
-  nubosidad_escena_max: 35
-  # Parametros adicionales si se usa "s2cloudless" y proteccion de agua/manglar inundado
-  probabilidad_nube: 30
   reflectancia_nir_oscura: 0.15
-  umbral_mndwi_agua: 0.10
   distancia_sombra_km: 1
   erosion_m: 20
   buffer_m: 40
 
 s1:
+  # Fuente para procesamiento en SEPAL:
+  #   - "OPERA_RTC_S1" (predeterminado: COGs NASA JPL OPERA gamma0 ya terrain-corrected, ~8 MB/burst, Python puro)
+  #   - "GRD_SNAP"     (opcional: escenas IW GRD_HD 10m nativos procesadas localmente con ESA SNAP gpt en SEPAL)
+  fuente_local: "OPERA_RTC_S1"
   aplicar_border_noise: true
-  # Filtro de moteado (speckle) en escala lineal:
-  #   - "REFINED_LEE" (7x7 direccional preservador de bordes; Mullissa et al., 2021)
-  #   - "BOXCAR"      (media movil configurable)
-  #   - "NONE"        (solo mediana estacional)
-  speckle_filter: "REFINED_LEE"
+  speckle_filter: "REFINED_LEE"  # "REFINED_LEE", "BOXCAR" o "NONE" en potencia lineal
   kernel_size: 7
   aplicar_terrain_flattening: true
-  terrain_model: "VOLUME"  # "VOLUME" (recomendado para bosques/manglar) o "DIRECT"
-  dem_asset: "USGS/SRTMGL1_003"  # se aplica .unmask(0) para proteger linea costera
+  terrain_model: "VOLUME"
+  dem_asset: "USGS/SRTMGL1_003"
   layover_shadow_buffer_m: 0
   piso_lineal_min: 1.0e-6  # -60 dB min; evita -Infinity / NaN
 
@@ -118,14 +137,11 @@ clases:
     color: "#fdae61"
 
 muestreo:
-  # Erosion interna (m) al proponer puntos guia dentro de DinMangle para evitar bordes mixtos
   erosion_mangle_guia_m: 20
-  # Particion preliminar (diagnostico interno antes de AREA2/CEO)
   test_size_preliminar: 0.30
 
 pca:
   criterio_kaiser: 1.0
-  # Numero minimo de bandas opticas y SAR a retener en la seleccion guiada por PCA
   umbral_varianza_acumulada: 0.85
 
 clasificacion:
@@ -134,7 +150,6 @@ clasificacion:
     min_samples_leaf: 2
     max_features: "sqrt"
     cv_folds: 5
-    # Grilla de busqueda para ajuste de hiperparametros sobre el 70% de entrenamiento
     param_grid:
       n_estimators: [150, 300, 500]
       min_samples_leaf: [1, 2, 4]
@@ -144,3 +159,6 @@ validacion_olofsson:
   nivel_confianza: 0.95
   bootstrap_iteraciones: 2000
   alpha_hipotesis: 0.05
+  # Parametros para generacion de muestra estratificada tipo AREA2 directa en SEPAL
+  error_estandar_objetivo_oa: 0.015
+  n_min_por_estrato: 50

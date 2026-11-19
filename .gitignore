@@ -28,15 +28,19 @@ venv/
 *.pkl
 
 # Salidas generadas por corrida (versionar solo codigo y configuracion)
+outputs/aoi/*
+outputs/guia/*
 outputs/mapas/*
 outputs/modelos/*
 outputs/muestras/*
 outputs/figuras/*
+outputs/stack/*
 outputs/tablas/*
 !outputs/.gitkeep
 
 # Credenciales y secretos (NUNCA subir a GitHub)
 .env
+.netrc
 *.json.secret
 credentials.json
 token.json

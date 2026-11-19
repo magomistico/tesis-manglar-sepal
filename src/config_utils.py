@@ -40,8 +40,12 @@ def load_config(config_path: Optional[str | Path] = None) -> Dict[str, Any]:
 def ensure_output_dirs(cfg: Dict[str, Any]) -> Dict[str, Path]:
     """Crea y devuelve el diccionario de directorios de salida del proyecto."""
     root = Path(cfg["_root"])
+    local_cfg = cfg.get("local_assets", {})
     dirs = {
         "outputs": root / "outputs",
+        "aoi": root / local_cfg.get("aoi_dir", "outputs/aoi"),
+        "guia": root / local_cfg.get("guia_dir", "outputs/guia"),
+        "stack": root / local_cfg.get("stack_dir", "outputs/stack"),
         "tablas": root / "outputs" / "tablas",
         "figuras": root / "outputs" / "figuras",
         "muestras": root / "outputs" / "muestras",
@@ -51,6 +55,17 @@ def ensure_output_dirs(cfg: Dict[str, Any]) -> Dict[str, Path]:
     for d in dirs.values():
         d.mkdir(parents=True, exist_ok=True)
     return dirs
+
+
+def resolve_max_workers(cfg: Dict[str, Any], cap: int = 16) -> int:
+    """Devuelve el número de hilos/procesos recomendados según los CPUs de la VM SEPAL."""
+    import os
+
+    configured = cfg.get("computo", {}).get("max_workers")
+    if configured is not None:
+        return max(1, int(configured))
+    cpus = os.cpu_count() or 2
+    return max(2, min(cpus, cap))
 
 
 def get_class_maps(cfg: Dict[str, Any]) -> tuple[dict[int, str], dict[int, str], dict[int, str]]:

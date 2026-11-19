@@ -1,17 +1,28 @@
-# Dependencias para ejecucion en SEPAL.io JupyterLab
-earthengine-api>=1.0.0
-geemap>=0.34.0
-ipywidgets>=8.0.0
-ipyleaflet>=0.18.0
-pyyaml>=6.0
+# Dependencias para ejecucion 100% SEPAL.io (JupyterLab m8d / m16d) y respaldo GEE
 numpy>=1.24.0
 pandas>=2.0.0
 scipy>=1.11.0
+pyyaml>=6.0
 scikit-learn>=1.4.0
 statsmodels>=0.14.0
 matplotlib>=3.8.0
 seaborn>=0.13.0
+openpyxl>=3.1.0
+pillow>=10.0.0
+tqdm>=4.66.0
+requests>=2.31.0
+
+# Lectura/escritura raster, STAC cloud-native y descarga Sentinel-1 ASF
+rasterio>=1.3.10
 geopandas>=0.14.0
 shapely>=2.0.0
-openpyxl>=3.1.0
+pyproj>=3.6.0
+pystac-client>=0.8.0
+asf-search>=8.0.0
+
+# Mapas interactivos y descarga puntual de AOIs desde GEE
+earthengine-api>=1.0.0
+geemap>=0.34.0
+ipywidgets>=8.0.0
+ipyleaflet>=0.18.0
 pytest>=8.0.0
