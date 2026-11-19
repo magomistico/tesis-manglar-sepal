@@ -56,10 +56,11 @@ cd tesis-manglar-sepal
 pip install -r requirements.txt
 ```
 
-3. Verifica y ajusta en [`config.yaml`](config.yaml) las rutas exactas de tus assets en GEE:
-   - `gee.project` y `gee.asset_root` (por defecto `manglev1`)
-   - `assets.aoi.PACIFICO` y `assets.aoi.CARIBE`
-   - `assets.mangle_guia` (`projects/tesismangle/assets/DinMangle_2020_2022_V23`)
+3. Verifica en [`config.yaml`](config.yaml) las rutas de tus assets en GEE (ya configuradas en `tesismangle`):
+   - `gee.project`: `tesismangle` y `gee.asset_root`: `projects/tesismangle/assets/`
+   - `assets.aoi.PACIFICO`: `projects/tesismangle/assets/AOI_PACIFICO`
+   - `assets.aoi.CARIBE`: `projects/tesismangle/assets/AOI_CARIBE`
+   - `assets.mangle_guia`: `projects/tesismangle/assets/DinMangle_2020_2022_V23`
 4. Abre **JupyterLab** en SEPAL y comienza ejecutando `notebooks/00_setup_entorno_sepal.ipynb`.
 
 > **Recomendación de presupuesto SEPAL:** Apaga tu instancia al terminar cada sesión de trabajo; tus notebooks y archivos en `~/tesis-manglar-sepal` permanecerán guardados de forma persistente. Usa `t2`/`m2` para preparación, muestreo y validación, y sube a `m4`/`m8` únicamente durante la búsqueda de hiperparámetros de Random Forest en el Notebook 04.

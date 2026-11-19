@@ -12,18 +12,18 @@ proyecto:
 
 gee:
   # Proyecto de Google Cloud habilitado para Earth Engine (donde se guardaran los assets)
-  project: "manglev1"
-  asset_root: "projects/manglev1/assets/"
+  project: "tesismangle"
+  asset_root: "projects/tesismangle/assets/"
   drive_folder: "TESIS_MANGLE_SEPAL_V1"
   max_pixels: 10000000000000  # 1e13
 
 assets:
   # Capa guia oficial de manglar actual para apoyo al muestreo de control
   mangle_guia: "projects/tesismangle/assets/DinMangle_2020_2022_V23"
-  # Assets de poligonos AOI (verificar/ajustar rutas exactas en Notebook 00)
+  # Assets de poligonos AOI (verificar acceso en Notebook 00)
   aoi:
-    PACIFICO: "projects/manglev1/assets/AOI_PACIFICO"
-    CARIBE: "projects/manglev1/assets/AOI_CARIBE"
+    PACIFICO: "projects/tesismangle/assets/AOI_PACIFICO"
+    CARIBE: "projects/tesismangle/assets/AOI_CARIBE"
 
 regiones:
   PACIFICO:

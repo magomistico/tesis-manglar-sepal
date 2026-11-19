@@ -39,7 +39,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # ---------------------------------------------------------------------------
 def test_config_loads_and_matches_protocol():
     cfg = load_config(REPO_ROOT / "config.yaml")
+    assert cfg["gee"]["project"] == "tesismangle"
+    assert cfg["gee"]["asset_root"] == "projects/tesismangle/assets/"
     assert cfg["assets"]["mangle_guia"] == "projects/tesismangle/assets/DinMangle_2020_2022_V23"
+    assert cfg["assets"]["aoi"]["PACIFICO"] == "projects/tesismangle/assets/AOI_PACIFICO"
+    assert cfg["assets"]["aoi"]["CARIBE"] == "projects/tesismangle/assets/AOI_CARIBE"
     assert cfg["regiones"]["PACIFICO"]["crs"] == "EPSG:32615"
     assert cfg["regiones"]["CARIBE"]["crs"] == "EPSG:32616"
     assert cfg["regiones"]["PACIFICO"]["linea_base_marn_2013_ha"] == pytest.approx(17670.56)
